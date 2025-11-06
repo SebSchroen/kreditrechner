@@ -22,11 +22,16 @@ ui <- dashboardPage(
     fluidRow(
             valueBoxOutput("kreditbetrag", width = 3),
             valueBoxOutput("rate", width = 2),
-            valueBoxOutput("laufzeit", width = 3),
-            valueBoxOutput("restschuld", width = 4),
+            valueBoxOutput("laufzeit", width = 2),
+            valueBoxOutput("restschuld", width = 3),
             
             
     ),
+    fluidRow(            
+   
+      valueBoxOutput("zinsen", width=3),
+      valueBoxOutput("zahlungen", width=3),
+     valueBoxOutput("anteil_zinsen", width=3)),
     
     fluidRow(
       box(plotOutput("remainingDebtPlot"), width = 10),
@@ -45,7 +50,7 @@ server <- function(input, output) {
     P <- H + NK - EK
     p <- input$Tilgungsrate/100
     fix_r <- as.numeric(input$Zinsbindung)
-    print(fix_r)
+    #print(fix_r)
     r <- input$Interest_rate / 100
     C <- (r * P + p * P) / 12
     r_m <- (1 + r)^(1/12) - 1
@@ -76,7 +81,8 @@ server <- function(input, output) {
     restschuld <- plan %>% 
       filter(Datum ==ablauf_zinsbindung) %>% 
       pull(Schuld)
-    
+
+    print(sum(plan$Zins, na.rm=TRUE))
     results <-  list(plan = plan, 
                      rate = C,
                      laufzeit = t,
@@ -134,11 +140,44 @@ server <- function(input, output) {
       icon = icon("money-bill")
     )
   })
+  
   output$restschuld <- renderValueBox({
-    print(calculateTilgungsplan()$restschuld)
+    #print(calculateTilgungsplan()$restschuld)
     valueBox(
       paste0(round(calculateTilgungsplan()$restschuld,0), " €"), 
       "Restschuld nach Zinsbindung",
+      color = "blue",
+      icon = icon("money-bill")
+    )
+  })
+  
+  output$zinsen <- renderValueBox({
+    plan <- calculateTilgungsplan()$plan # Use the same plan data
+    
+    valueBox(
+      paste0(round(sum(plan$Zins, na.rm=TRUE),0), " €"),
+      "Summe Zinszahlungen",
+      color = "blue",
+      icon = icon("money-bill")
+    )
+  })
+  
+  output$zahlungen <- renderValueBox({
+    plan <- calculateTilgungsplan()$plan # Use the same plan data
+    
+    valueBox(
+      paste0(round(sum(plan$Zins+plan$Tilgung, na.rm=TRUE),0), " €"),
+      "Summe aller Raten",
+      color = "blue",
+      icon = icon("money-bill")
+    )
+  })
+  output$anteil_zinsen <- renderValueBox({
+    plan <- calculateTilgungsplan()$plan # Use the same plan data
+    
+    valueBox(
+      paste0(100*round(sum(plan$Zins, na.rm=TRUE)/sum(plan$Zins+plan$Tilgung, na.rm=TRUE),4), " %"),
+      "Anteil Zinszahlungen",
       color = "blue",
       icon = icon("money-bill")
     )
